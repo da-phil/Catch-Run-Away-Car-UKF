@@ -12,7 +12,11 @@ add_definitions(-std=c++11)
 
 set(CXX_FLAGS "-Wall")
 set(CMAKE_CXX_FLAGS, "${CXX_FLAGS}")
-set(sources src/ukf.cpp src/main.cpp)
+set(sources
+    src/ukf.cpp
+    src/ekf.cpp
+    src/main.cpp
+)
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin") 
 include_directories(/usr/local/include)
