@@ -174,8 +174,9 @@ int main(int argc, char *argv[])
   double target_x = 0.0;
   double target_y = 0.0;
   long long last_timestamp = 0.0;
+  double last_dt = 0.0;
 
-  h.onMessage([filter,&target_x,&target_y,&last_timestamp](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
+  h.onMessage([filter,&target_x,&target_y,&last_timestamp,&last_dt](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
     // The 2 signifies a websocket event
@@ -210,6 +211,11 @@ int main(int argc, char *argv[])
           filter->ProcessMeasurement(radar_meas_package);
 
           dt = (lidar_meas_package.timestamp_ - last_timestamp) / 1.0e6;
+          // hack to make sure dt is not jumping forth and back (right now it seems to jump between 0.02 and 0)
+          if (fabs(dt) < std::numeric_limits<double>::epsilon())
+            dt = last_dt;
+          last_dt = dt;
+
           //cout << "dt: " << dt << endl;
           last_timestamp = lidar_meas_package.timestamp_;
           target_x = filter->x_[0];
@@ -218,9 +224,9 @@ int main(int argc, char *argv[])
           target_yaw = filter->x_[3];
           target_yawd = filter->x_[4];
 
-          // predict where run away car will be in next timestep!
-          target_x_pred = target_x + 50*dt*target_v*cos(target_yaw);
-          target_y_pred = target_y + 50*dt*target_v*sin(target_yaw);
+          // predict where run away car will be 30 timesteps ahead!
+          target_x_pred = target_x + 30*dt*target_v*cos(target_yaw + dt*target_yawd);
+          target_y_pred = target_y + 30*dt*target_v*sin(target_yaw + dt*target_yawd);
           target_yaw_pred = fmod(target_yaw + dt*target_yawd, 2.*M_PI);
 
           double heading_to_target = fmod(atan2(target_y_pred - hunter_y, target_x_pred - hunter_x), 2.*M_PI);
